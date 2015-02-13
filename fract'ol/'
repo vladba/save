@@ -1,0 +1,119 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vbargues <vbargues@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2015/01/14 03:09:48 by vbargues          #+#    #+#             */
+/*   Updated: 2015/01/14 08:13:54 by vbargues         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "ft.h"
+#include <mlx.h>
+#include <stdio.h>
+#include <unistd.h>
+#include </usr/X11/include/X11/X.h>
+
+
+int		ft_mandel(t_env *e, double x, double y)
+{
+	double	Cr;
+	double	Ci;
+	double	Zr;
+	double	Zi;
+	double	tmp;
+
+	Cr = x;
+	Ci = y;
+	e->i = -1;
+//	Zi = 2 * x * y + Ci;
+//	Zr = x * x - y * y + Cr;
+	Zi = 0;
+	Zr = 0;
+	while (++e->i < 41 && Zi * Zi + Zr * Zr < 4)
+	{
+		tmp = Zr;
+		Zr = Zr * Zr - Zi * Zi + Cr;
+		Zi = 2 * tmp *Zi + Ci;
+	}
+	if (e->i < 5)
+		return(0);
+	if (e->i < 10)
+		return(0x000060);
+	if (e->i < 15)
+		return(0x004080);
+	if (e->i < 25)
+		return(0x0080A0);
+	if (e->i < 30)
+		return(0x00FFFF);
+	if (e->i < 35)
+		return(0x00FFA0);
+	if (e->i < 40)
+		return(0x008050);
+	return (0x00FF20);
+}
+
+int		ft_draw(t_env *e)
+{
+	double	x;
+	double	y;
+	double	x2;
+	double	y2;
+
+
+	x = -1;
+	while (++x < e->width)
+	{
+		y = -1;
+		while (++y < e->height)
+		{
+			x2 = x / e->width * (e->x_max - e->x_min) + e->x_min;
+			y2 = y / e->height * (e->y_max - e->y_min) + e->y_min;
+			adapt_pixel_in_image(e, (e->ptr_fonction)(e, x2, y2), x, y);
+		}
+	}
+	mlx_put_image_to_window(e->mlx, e->win, e->img.img, 0, 0);
+	return (0);
+}
+
+int		loop_hook(t_env *e)
+{
+	if (e->down_pressed || e->up_pressed || e->left_pressed || e->right_pressed)
+		ft_move(e);
+	printf("%d %d %d %d\n", e->down_pressed, e->left_pressed, e->up_pressed, e->right_pressed);
+	mlx_expose_hook(e->win, ft_draw, e);
+	return (0);
+}
+
+int		main()
+{
+	t_env	e;
+
+	e.mlx = mlx_init();
+	e.width = 810;
+	e.height = 720;
+	e.x_max = 1.4;
+	e.y_max = 1.6;
+	e.x_min = -1.8;
+	e.y_min = -1.6;
+	e->down_pressed = 0;
+	e->up_pressed = 0;
+	e->left_pressed = 0;
+	e->right_pressed = 0;
+	e.win = mlx_new_window(e.mlx, e.width, e.height, "fract'ol");
+	e.img.img = mlx_new_image(e.mlx, e.width, e.height);
+	e.img.height = e.height;
+	e.img.width = e.width;
+	e.img.data = mlx_get_data_addr(e.img.img, &(e.img.bpp), &(e.img.sl), &(e.img.endian));
+//		if (strcmp(argv[1], "Mandelbrot") == 0)
+		e.ptr_fonction = ft_mandel;
+	mlx_expose_hook(e.win, ft_draw, &e);
+	mlx_do_key_autorepeatoff(e.mlx);
+	mlx_hook(e.win, KeyPress, KeyPressMask, key_press, &e);
+	mlx_hook(e.win, KeyRelease, KeyReleaseMask, key_release, &e);
+	mlx_loop_hook(e.mlx, loop_hook, &e);
+	mlx_loop(e.mlx);
+	return (0);
+}
